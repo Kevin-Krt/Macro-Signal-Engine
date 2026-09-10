@@ -1,0 +1,26 @@
+# env / cache
+.venv/
+__pycache__/
+*.py[oc]
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# git
+.git/
+.gitignore
+
+# secrets
+.env
+.env.*
+!.env.example
+
+# tests / docs
+tests/
+*.md
+
+# build
+dist/
+build/
+*.egg-info
