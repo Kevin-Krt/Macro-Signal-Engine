@@ -18,6 +18,9 @@ class Settings(BaseSettings):
     redis_url: RedisDsn
     jwt_secret: SecretStr
     fernet_key: SecretStr
+    log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"
+    log_format: Literal["json", "console"] = "json"
+    log_sql: bool = False
 
 
 @lru_cache
