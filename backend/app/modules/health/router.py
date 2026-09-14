@@ -23,7 +23,7 @@ async def check_database(session: AsyncSession) -> bool:
         async with asyncio.timeout(HEALTH_TIMEOUT_SECONDS):
             result = await session.execute(text("SELECT 1"))
         return result.scalar() == 1
-    except (SQLAlchemyError, TimeoutError):
+    except SQLAlchemyError, TimeoutError:
         return False
 
 
@@ -32,13 +32,12 @@ async def check_redis(settings: Settings) -> bool:
         str(settings.redis_url),
         socket_connect_timeout=HEALTH_TIMEOUT_SECONDS,
         socket_timeout=HEALTH_TIMEOUT_SECONDS,
-        decode_responses=True,
     )
     try:
         async with asyncio.timeout(HEALTH_TIMEOUT_SECONDS):
             await client.ping()
         return True
-    except (RedisError, TimeoutError):
+    except RedisError, TimeoutError:
         return False
     finally:
         await client.aclose()
@@ -49,7 +48,6 @@ async def health(
     session: Annotated[AsyncSession, Depends(get_session)],
     settings: Annotated[Settings, Depends(get_settings)],
 ) -> JSONResponse:
-
     checks: dict[str, bool] = {}
 
     checks["database"], checks["redis"] = await asyncio.gather(
@@ -59,6 +57,4 @@ async def health(
     if not all(checks.values()):
         raise HealthCheckError(checks)
 
-    return JSONResponse(
-        status_code=200, content={"status": "ok", "checks": checks}
-    )
+    return JSONResponse(status_code=200, content={"status": "ok", "checks": checks})
