@@ -1,7 +1,7 @@
 """initial empty revision
 
 Revision ID: e0ad8f1d389d
-Revises: 
+Revises:
 Create Date: 2026-09-14 11:01:21.922691
 
 """
