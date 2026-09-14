@@ -1,7 +1,7 @@
 # ---------- build ----------
 FROM python:3.14-slim AS builder
 
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+COPY --from=ghcr.io/astral-sh/uv:0.12.9 /uv /usr/local/bin/uv
 
 WORKDIR /app
 
@@ -9,7 +9,7 @@ COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev --no-install-project
 
 COPY app ./app
-RUN uv sync --frozen --no-dev
+RUN uv sync --frozen --no-dev --no-editable
 
 
 # ---------- runtime ----------
@@ -20,7 +20,6 @@ RUN useradd --create-home --uid 1000 appuser
 WORKDIR /app
 
 COPY --from=builder --chown=appuser:appuser /app/.venv ./.venv
-COPY --chown=appuser:appuser app ./app
 
 ENV PATH="/app/.venv/bin:$PATH" \
     PYTHONUNBUFFERED=1
