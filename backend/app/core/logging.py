@@ -13,9 +13,7 @@ from structlog.typing import Processor
 # ---------------------------------------------------------------- configuration
 
 
-def configure_logging(
-    *, json_logs: bool, level: str, log_sql: bool = False
-) -> None:
+def configure_logging(*, json_logs: bool, level: str, log_sql: bool = False) -> None:
     shared_processors: list[Processor] = [
         structlog.contextvars.merge_contextvars,
         structlog.stdlib.add_log_level,
@@ -91,9 +89,7 @@ class RequestLoggingMiddleware:
     def __init__(self, app: ASGIApp) -> None:
         self.app = app
 
-    async def __call__(
-        self, scope: Scope, receive: Receive, send: Send
-    ) -> None:
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] != "http":
             await self.app(scope, receive, send)
             return
@@ -114,9 +110,7 @@ class RequestLoggingMiddleware:
             nonlocal status_code
             if message["type"] == "http.response.start":
                 status_code = message["status"]
-                MutableHeaders(scope=message).append(
-                    REQUEST_ID_HEADER, request_id
-                )
+                MutableHeaders(scope=message).append(REQUEST_ID_HEADER, request_id)
             await send(message)
 
         try:

@@ -19,12 +19,8 @@ def make_app() -> FastAPI:
 
 async def test_request_produces_one_structured_log() -> None:
     transport = ASGITransport(app=make_app())
-    with capture_logs(
-        processors=[structlog.contextvars.merge_contextvars]
-    ) as logs:
-        async with AsyncClient(
-            transport=transport, base_url="http://test"
-        ) as client:
+    with capture_logs(processors=[structlog.contextvars.merge_contextvars]) as logs:
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
             response = await client.get("/ping")
 
     access = [e for e in logs if e["event"] == "http_request"]
@@ -39,20 +35,14 @@ async def test_request_produces_one_structured_log() -> None:
 
 async def test_valid_incoming_request_id_is_reused() -> None:
     transport = ASGITransport(app=make_app())
-    async with AsyncClient(
-        transport=transport, base_url="http://test"
-    ) as client:
-        response = await client.get(
-            "/ping", headers={"X-Request-ID": "abc-12345-def"}
-        )
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.get("/ping", headers={"X-Request-ID": "abc-12345-def"})
     assert response.headers["x-request-id"] == "abc-12345-def"
 
 
 async def test_malicious_request_id_is_replaced() -> None:
     transport = ASGITransport(app=make_app())
-    async with AsyncClient(
-        transport=transport, base_url="http://test"
-    ) as client:
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.get(
             "/ping", headers={"X-Request-ID": "not a valid id!"}
         )
@@ -69,9 +59,7 @@ async def test_server_error_is_logged_as_error() -> None:
 
     transport = ASGITransport(app=app, raise_app_exceptions=False)
     with capture_logs() as logs:
-        async with AsyncClient(
-            transport=transport, base_url="http://test"
-        ) as client:
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
             response = await client.get("/boom")
 
     assert response.status_code == 500

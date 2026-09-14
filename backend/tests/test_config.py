@@ -15,6 +15,4 @@ def test_missing_required_key(monkeypatch: pytest.MonkeyPatch) -> None:
 
     errors = err.value.errors()
 
-    assert any(
-        e["loc"] == ("jwt_secret",) and e["type"] == "missing" for e in errors
-    )
+    assert any(e["loc"] == ("jwt_secret",) and e["type"] == "missing" for e in errors)
