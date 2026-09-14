@@ -4,9 +4,9 @@ from typing import Annotated
 from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
 from redis.asyncio import Redis
-from redis.exceptions import ConnectionError as RedisConnectionError
+from redis.exceptions import RedisError
 from sqlalchemy import text
-from sqlalchemy.exc import OperationalError as SqlOperationalError
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import Settings, get_settings
@@ -15,21 +15,30 @@ from app.core.exceptions import HealthCheckError
 
 health_router = APIRouter()
 
+HEALTH_TIMEOUT_SECONDS = 2
+
 
 async def check_database(session: AsyncSession) -> bool:
     try:
-        result = await session.execute(text("SELECT 1"))
+        async with asyncio.timeout(HEALTH_TIMEOUT_SECONDS):
+            result = await session.execute(text("SELECT 1"))
         return result.scalar() == 1
-    except SqlOperationalError:
+    except (SQLAlchemyError, TimeoutError):
         return False
 
 
 async def check_redis(settings: Settings) -> bool:
-    client = Redis.from_url(str(settings.redis_url), decode_responses=True)
+    client = Redis.from_url(
+        str(settings.redis_url),
+        socket_connect_timeout=HEALTH_TIMEOUT_SECONDS,
+        socket_timeout=HEALTH_TIMEOUT_SECONDS,
+        decode_responses=True,
+    )
     try:
-        await client.ping()
+        async with asyncio.timeout(HEALTH_TIMEOUT_SECONDS):
+            await client.ping()
         return True
-    except RedisConnectionError:
+    except (RedisError, TimeoutError):
         return False
     finally:
         await client.aclose()
