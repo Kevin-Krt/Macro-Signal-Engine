@@ -43,6 +43,7 @@ Expected: `{"status":"ok","checks":{"database":true,"redis":true}}`
 ```bash
 cd backend && uv sync    # install the dependencies
 make hooks               # install the git hooks (not versioned, run once)
+make createdb-test       # create the test database (run once)
 ```
 
 Run the API with hot reload, against the containerised services:
@@ -63,8 +64,10 @@ cd backend && uv run uvicorn app.main:app --reload
 | `make clean` | stop them and **delete** the volumes |
 | `make logs` | follow the API logs |
 | `make psql` | open psql on the database |
+| `make revision m=""` | generate a migration from the models |
 | `make migrate` | apply the migrations |
 | `make test` | run the test suite |
+| `make createdb-test` | create the database (run once) |
 | `make check` | everything the CI runs |
 
 ## Layout
@@ -72,9 +75,10 @@ cd backend && uv run uvicorn app.main:app --reload
 ```
 backend/          FastAPI application
   app/core/       config, database, logging
-  app/modules/    business modules
+  app/modules/    business modules (health, events)
+  app/registry.py every model, imported for Alembic
   alembic/        migrations
-  tests/
+  tests/          conftest.py holds the database fixtures
 infra/postgres/   database init scripts
 .github/          CI workflow
 ```
