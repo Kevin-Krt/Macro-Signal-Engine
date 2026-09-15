@@ -18,6 +18,7 @@ class Settings(BaseSettings):
 
     env: Literal["dev", "prod", "test"] = "dev"
     database_url: PostgresDsn
+    test_database_url: PostgresDsn | None = None
     redis_url: RedisDsn
     jwt_secret: SecretStr
     fernet_key: SecretStr
