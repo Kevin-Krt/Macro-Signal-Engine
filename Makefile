@@ -67,3 +67,8 @@ check: lint  ## Run everything the CI runs
 
 hooks:  ## Install the git hooks
 	cd $(BACKEND) && uv run pre-commit install
+
+## ---------- test ----------
+
+createdb-test:  ## Create the test database (safe to re-run)
+	$(COMPOSE) exec postgres createdb -U $$POSTGRES_USER $${POSTGRES_DB}_test || true
