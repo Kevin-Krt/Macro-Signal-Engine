@@ -1,4 +1,7 @@
+import json
 from collections.abc import AsyncGenerator
+from pathlib import Path
+from typing import Any
 
 import pytest
 from sqlalchemy.ext.asyncio import (
@@ -13,6 +16,20 @@ from sqlalchemy.pool import NullPool
 import app.registry  # noqa: F401  imports every model so metadata is complete
 from app.core.config import get_settings
 from app.core.database import Base
+
+FIXTURES_DIR = Path(__file__).parent / "fixtures"
+
+
+def load_fixture(name: str) -> Any:
+    return json.loads((FIXTURES_DIR / name).read_text(encoding="utf-8"))
+
+
+@pytest.fixture
+def finnhub_articles() -> list[dict[str, Any]]:
+    """
+    Three real articles, as returned by GET /api/v1/news.
+    """
+    return load_fixture("finnhub_news.json")
 
 
 @pytest.fixture(scope="session")

@@ -52,6 +52,7 @@ jobs:
       APP_FERNET_KEY: MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=
       APP_LOG_FORMAT: json
       APP_LOG_LEVEL: INFO
+      APP_FINNHUB_API_KEY: fake_api_key
 
     steps:
       - name: Checkout

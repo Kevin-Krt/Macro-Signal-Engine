@@ -25,6 +25,7 @@ class Settings(BaseSettings):
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"
     log_format: Literal["json", "console"] = "json"
     log_sql: bool = False
+    finnhub_api_key: SecretStr
 
 
 @lru_cache
