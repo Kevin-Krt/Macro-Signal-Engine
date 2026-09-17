@@ -1,4 +1,5 @@
 from datetime import UTC, datetime
+from typing import Any
 
 import pytest
 from sqlalchemy import func, select
@@ -8,15 +9,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.modules.events.models import Event
 
 
-def make_event(**kw: object) -> Event:
-    defaults = {
+def make_event(**kw: Any) -> Event:
+    defaults: dict[str, Any] = {
         "source": "fred",
         "external_id": "CPI-2026-09",
         "event_type": "calendar",
         "title": "US CPI",
         "occurred_at": datetime(2026, 9, 10, 12, 30, tzinfo=UTC),
     }
-    return Event(**{**defaults, **kw})
+    return Event(**(defaults | kw))
 
 
 async def test_insert_event(session: AsyncSession) -> None:
