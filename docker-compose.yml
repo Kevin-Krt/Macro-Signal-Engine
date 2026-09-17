@@ -33,11 +33,12 @@ services:
     ports:
       - "8000:8000"
     env_file: .env
-    environment:
+    environment: &backend_env
       APP_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       APP_REDIS_URL: redis://redis:6379/0
       APP_LOG_FORMAT: json
-    depends_on:
+      APP_LOG_SQL: "false"
+    depends_on: &backend_deps
       postgres:
         condition: service_healthy
       redis:
@@ -48,6 +49,48 @@ services:
       timeout: 3s
       retries: 5
       start_period: 10s
+
+  worker-io:
+    build: ./backend
+    command: >-
+      celery -A app.core.celery_app worker
+      --queues ingestion --pool prefork --concurrency 50
+    env_file: .env
+    environment: *backend_env
+    depends_on: *backend_deps
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A app.core.celery_app inspect ping -d celery@$$HOSTNAME"]
+      interval: 15s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+  worker-cpu:
+    build: ./backend
+    command: >-
+      celery -A app.core.celery_app worker
+      --queues compute --pool prefork --concurrency 2
+    env_file: .env
+    environment: *backend_env
+    depends_on: *backend_deps
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A app.core.celery_app inspect ping -d celery@$$HOSTNAME"]
+      interval: 15s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+  beat:
+    build: ./backend
+    command: celery -A app.core.celery_app beat --schedule /tmp/celerybeat-schedule
+    env_file: .env
+    environment: *backend_env
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
 
 volumes:
   pgdata:
