@@ -18,12 +18,14 @@ class Settings(BaseSettings):
 
     env: Literal["dev", "prod", "test"] = "dev"
     database_url: PostgresDsn
+    test_database_url: PostgresDsn | None = None
     redis_url: RedisDsn
     jwt_secret: SecretStr
     fernet_key: SecretStr
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"
     log_format: Literal["json", "console"] = "json"
     log_sql: bool = False
+    finnhub_api_key: SecretStr
 
 
 @lru_cache

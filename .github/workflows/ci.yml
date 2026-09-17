@@ -46,11 +46,13 @@ jobs:
     env:
       APP_ENV: test
       APP_DATABASE_URL: postgresql+psycopg://app_admin:ci_password@localhost:5432/macro_signal_engine
+      APP_TEST_DATABASE_URL: postgresql+psycopg://app_admin:ci_password@localhost:5432/macro_signal_engine_test
       APP_REDIS_URL: redis://localhost:6379/0
       APP_JWT_SECRET: ci-jwt-secret-not-a-real-one
       APP_FERNET_KEY: MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=
       APP_LOG_FORMAT: json
       APP_LOG_LEVEL: INFO
+      APP_FINNHUB_API_KEY: fake_api_key
 
     steps:
       - name: Checkout
@@ -80,6 +82,11 @@ jobs:
           uv run alembic upgrade head
           uv run alembic downgrade base
           uv run alembic upgrade head
+
+      - name: Create the test database
+        env:
+          PGPASSWORD: ci_password
+        run: psql -h localhost -U app_admin -d macro_signal_engine -c "CREATE DATABASE macro_signal_engine_test"
 
       - name: Tests
         run: uv run pytest
