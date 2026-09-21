@@ -26,6 +26,7 @@ class Settings(BaseSettings):
     log_format: Literal["json", "console"] = "json"
     log_sql: bool = False
     finnhub_api_key: SecretStr
+    fred_api_key: SecretStr
 
 
 @lru_cache
