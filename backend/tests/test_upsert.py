@@ -20,6 +20,18 @@ def make_draft(**kw: Any) -> EventDraft:
     return EventDraft(**(defaults | kw))
 
 
+def make_calendar_draft(**kw: Any) -> EventDraft:
+    defaults: dict[str, Any] = {
+        "source": "fred_calendar",
+        "external_id": "CPIAUCSL:2026-09-11",
+        "event_type": "calendar",
+        "title": "CPI (YoY)",
+        "occurred_at": datetime(2026, 9, 11, 12, 30, tzinfo=UTC),
+        "payload": {"actual": None, "previous": 3.30, "series_id": "CPIAUCSL"},
+    }
+    return EventDraft(**(defaults | kw))
+
+
 async def count_events(session: AsyncSession) -> int:
     return await session.scalar(select(func.count()).select_from(Event)) or 0
 
@@ -106,3 +118,81 @@ async def test_upsert_keeps_sources_apart(session: AsyncSession) -> None:
     await session.commit()
 
     assert await count_events(session) == 2
+
+
+async def payload_of(session: AsyncSession) -> dict[str, Any]:
+    event = await session.scalar(select(Event))
+    assert event is not None
+    return event.payload
+
+
+async def test_freeze_keeps_the_announced_value(session: AsyncSession) -> None:
+    await upsert_events(
+        session, [make_calendar_draft(payload={"actual": 3.35})], freeze_payload=True
+    )
+    await session.commit()
+
+    await upsert_events(
+        session, [make_calendar_draft(payload={"actual": 9.99})], freeze_payload=True
+    )
+    await session.commit()
+
+    assert (await payload_of(session))["actual"] == 3.35
+
+
+async def test_freeze_still_fills_an_upcoming_event(session: AsyncSession) -> None:
+    await upsert_events(
+        session, [make_calendar_draft(payload={"actual": None})], freeze_payload=True
+    )
+    await session.commit()
+
+    await upsert_events(
+        session, [make_calendar_draft(payload={"actual": 3.35})], freeze_payload=True
+    )
+    await session.commit()
+
+    assert (await payload_of(session))["actual"] == 3.35
+
+
+async def test_freeze_also_holds_the_other_columns(session: AsyncSession) -> None:
+    await upsert_events(
+        session, [make_calendar_draft(payload={"actual": 3.35})], freeze_payload=True
+    )
+    await session.commit()
+
+    await upsert_events(
+        session,
+        [make_calendar_draft(title="Renamed", payload={"actual": 9.99})],
+        freeze_payload=True,
+    )
+    await session.commit()
+
+    event = await session.scalar(select(Event))
+    assert event is not None
+    assert event.title == "CPI (YoY)"
+
+
+async def test_without_freeze_the_payload_is_overwritten(session: AsyncSession) -> None:
+    await upsert_events(session, [make_calendar_draft(payload={"actual": 3.35})])
+    await session.commit()
+
+    await upsert_events(session, [make_calendar_draft(payload={"actual": 9.99})])
+    await session.commit()
+
+    assert (await payload_of(session))["actual"] == 9.99
+
+
+async def test_freeze_does_not_block_a_new_event(session: AsyncSession) -> None:
+    await upsert_events(
+        session,
+        [
+            make_calendar_draft(payload={"actual": 3.35}),
+            make_calendar_draft(
+                external_id="UNRATE:2026-09-04", payload={"actual": 4.1}
+            ),
+        ],
+        freeze_payload=True,
+    )
+    await session.commit()
+
+    assert await session.scalar(select(func.count()).select_from(Event)) == 2
