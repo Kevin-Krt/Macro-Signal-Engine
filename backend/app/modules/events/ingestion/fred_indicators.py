@@ -1,12 +1,17 @@
+"""Which FRED series we turn into calendar events, and how to present them.
+
+`release_id`, `series_id` and `units` were checked against the API with
+`scripts/check_fred.py`. `title`, `release_time`, `importance` and `category`
+are editorial choices: FRED knows none of them.
+
+Release times come from the publishing agency (BLS, BEA, Census, Fed) and are
+expressed in local time, so daylight saving is handled by `zoneinfo`.
+"""
+
 from dataclasses import dataclass
-from datetime import date, time
-from typing import Literal
+from datetime import time
 
-from app.core.types import Importance
-
-_NEW_YORK = "America/New_York"
-_8_30 = time(8, 30)
-_10_00 = time(10, 0)
+from app.core.types import Country, FredUnits, Importance
 
 
 @dataclass(frozen=True)
@@ -14,173 +19,299 @@ class Indicator:
     title: str
     release_id: int
     series_id: str
-    units: Literal["lin", "chg", "pch", "pc1"]
+    units: FredUnits
     release_time: time
     time_zone: str
+    country: Country
     importance: Importance
     category: str
 
 
+_NY = "America/New_York"
+_FF = "Europe/Berlin"
+_0830 = time(8, 30)
+_0915 = time(9, 15)
+_1000 = time(10, 0)
+_1200 = time(12, 0)
+_1500 = time(15, 0)
+
 INDICATORS: tuple[Indicator, ...] = (
     # ── inflation ──────────────────────────────────────────────
     Indicator(
-        title="CPI (YoY)",
-        release_id=10,
-        series_id="CPIAUCSL",
-        units="pc1",
-        release_time=_8_30,
-        time_zone=_NEW_YORK,
-        importance="high",
-        category="inflation",
+        "CPI (YoY)", 10, "CPIAUCSL", "pc1", _0830, _NY, "US", "high", "inflation"
     ),
     Indicator(
-        title="Core CPI (YoY)",
-        release_id=10,
-        series_id="CPILFESL",
-        units="pc1",
-        release_time=_8_30,
-        time_zone=_NEW_YORK,
-        importance="high",
-        category="inflation",
+        "Core CPI (YoY)", 10, "CPILFESL", "pc1", _0830, _NY, "US", "high", "inflation"
     ),
     Indicator(
-        title="PPI Final Demand (YoY)",
-        release_id=46,
-        series_id="PPIFIS",
-        units="pc1",
-        release_time=_8_30,
-        time_zone=_NEW_YORK,
-        importance="medium",
-        category="inflation",
+        "PPI (YoY)", 46, "PPIFIS", "pc1", _0830, _NY, "US", "medium", "inflation"
     ),
     Indicator(
-        title="Core PCE Price Index (YoY)",
-        release_id=54,
-        series_id="PCEPILFE",
-        units="pc1",
-        release_time=_8_30,
-        time_zone=_NEW_YORK,
-        importance="high",
-        category="inflation",
+        "Core PCE (YoY)", 54, "PCEPILFE", "pc1", _0830, _NY, "US", "high", "inflation"
+    ),
+    Indicator(
+        "Import Prices (MoM)", 188, "IR", "pch", _0830, _NY, "US", "low", "inflation"
     ),
     # ── employment ─────────────────────────────────────────────
     Indicator(
-        title="Non-Farm Payrolls",
-        release_id=50,
-        series_id="PAYEMS",
-        units="chg",
-        release_time=_8_30,
-        time_zone=_NEW_YORK,
-        importance="high",
-        category="employment",
+        "Non-Farm Payrolls", 50, "PAYEMS", "chg", _0830, _NY, "US", "high", "employment"
     ),
     Indicator(
-        title="Unemployment Rate",
-        release_id=50,
-        series_id="UNRATE",
-        units="lin",
-        release_time=_8_30,
-        time_zone=_NEW_YORK,
-        importance="high",
-        category="employment",
+        "Unemployment Rate", 50, "UNRATE", "lin", _0830, _NY, "US", "high", "employment"
     ),
     Indicator(
-        title="Average Hourly Earnings (YoY)",
-        release_id=50,
-        series_id="CES0500000003",
-        units="pc1",
-        release_time=_8_30,
-        time_zone=_NEW_YORK,
-        importance="medium",
-        category="employment",
+        "Average Hourly Earnings (YoY)",
+        50,
+        "CES0500000003",
+        "pc1",
+        _0830,
+        _NY,
+        "US",
+        "medium",
+        "employment",
     ),
     Indicator(
-        title="Initial Jobless Claims",
-        release_id=180,
-        series_id="ICSA",
-        units="lin",
-        release_time=_8_30,
-        time_zone=_NEW_YORK,
-        importance="medium",
-        category="employment",
+        "Initial Jobless Claims",
+        180,
+        "ICSA",
+        "lin",
+        _0830,
+        _NY,
+        "US",
+        "medium",
+        "employment",
     ),
     Indicator(
-        title="JOLTS Job Openings",
-        release_id=192,
-        series_id="JTSJOL",
-        units="lin",
-        release_time=_10_00,
-        time_zone=_NEW_YORK,
-        importance="medium",
-        category="employment",
-    ),
-    # ── growth & consumer ──────────────────────────────────────
-    Indicator(
-        title="GDP (QoQ, annualized)",
-        release_id=53,
-        series_id="A191RL1Q225SBEA",
-        units="lin",
-        release_time=_8_30,
-        time_zone=_NEW_YORK,
-        importance="high",
-        category="growth",
+        "Continuing Claims", 180, "CCSA", "lin", _0830, _NY, "US", "low", "employment"
     ),
     Indicator(
-        title="Retail Sales (MoM)",
-        release_id=9,
-        series_id="RSAFS",
-        units="pch",
-        release_time=_8_30,
-        time_zone=_NEW_YORK,
-        importance="high",
-        category="consumer",
+        "JOLTS Job Openings",
+        192,
+        "JTSJOL",
+        "lin",
+        _1000,
+        _NY,
+        "US",
+        "medium",
+        "employment",
+    ),
+    # ── growth ─────────────────────────────────────────────────
+    Indicator(
+        "Industrial Production (MoM)",
+        13,
+        "INDPRO",
+        "pch",
+        _0915,
+        _NY,
+        "US",
+        "medium",
+        "growth",
     ),
     Indicator(
-        title="Michigan Consumer Sentiment",
-        release_id=91,
-        series_id="UMCSENT",
-        units="lin",
-        release_time=_10_00,
-        time_zone=_NEW_YORK,
-        importance="medium",
-        category="consumer",
+        "Capacity Utilization", 13, "TCU", "lin", _0915, _NY, "US", "low", "growth"
+    ),
+    Indicator(
+        "Chicago Fed National Activity",
+        219,
+        "CFNAI",
+        "lin",
+        _0830,
+        _NY,
+        "US",
+        "low",
+        "growth",
+    ),
+    # ── consumer ───────────────────────────────────────────────
+    Indicator(
+        "Retail Sales (MoM)", 9, "RSAFS", "pch", _0830, _NY, "US", "high", "consumer"
+    ),
+    Indicator(
+        "Personal Income (MoM)", 54, "PI", "pch", _0830, _NY, "US", "medium", "consumer"
+    ),
+    Indicator(
+        "Personal Spending (MoM)",
+        54,
+        "PCE",
+        "pch",
+        _0830,
+        _NY,
+        "US",
+        "medium",
+        "consumer",
+    ),
+    Indicator(
+        "Consumer Credit", 14, "TOTALSL", "chg", _1500, _NY, "US", "low", "consumer"
+    ),
+    # ── housing ────────────────────────────────────────────────
+    Indicator(
+        "Housing Starts", 27, "HOUST", "lin", _0830, _NY, "US", "medium", "housing"
+    ),
+    Indicator(
+        "Building Permits", 27, "PERMIT", "lin", _0830, _NY, "US", "medium", "housing"
+    ),
+    Indicator(
+        "Existing Home Sales",
+        291,
+        "EXHOSLUSM495S",
+        "lin",
+        _1000,
+        _NY,
+        "US",
+        "medium",
+        "housing",
+    ),
+    Indicator(
+        "New Home Sales", 97, "HSN1F", "lin", _1000, _NY, "US", "medium", "housing"
+    ),
+    Indicator(
+        "Construction Spending (MoM)",
+        229,
+        "TTLCONS",
+        "pch",
+        _1000,
+        _NY,
+        "US",
+        "low",
+        "housing",
+    ),
+    Indicator(
+        "30-Year Mortgage Rate",
+        190,
+        "MORTGAGE30US",
+        "lin",
+        _1200,
+        _NY,
+        "US",
+        "low",
+        "housing",
+    ),
+    # ── manufacturing & trade ──────────────────────────────────
+    Indicator(
+        "Durable Goods Orders (MoM)",
+        95,
+        "DGORDER",
+        "pch",
+        _0830,
+        _NY,
+        "US",
+        "medium",
+        "manufacturing",
+    ),
+    Indicator(
+        "Empire State Manufacturing",
+        321,
+        "GACDISA066MSFRBNY",
+        "lin",
+        _0830,
+        _NY,
+        "US",
+        "medium",
+        "manufacturing",
+    ),
+    Indicator(
+        "Philadelphia Fed Manufacturing",
+        351,
+        "GACDFSA066MSFRBPHI",
+        "lin",
+        _0830,
+        _NY,
+        "US",
+        "medium",
+        "manufacturing",
+    ),
+    Indicator(
+        "Business Inventories (MoM)",
+        25,
+        "BUSINV",
+        "pch",
+        _1000,
+        _NY,
+        "US",
+        "low",
+        "manufacturing",
+    ),
+    Indicator(
+        "Trade Balance", 51, "BOPGSTB", "lin", _0830, _NY, "US", "medium", "trade"
     ),
 )
 
-# Source: https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm
-# The decision is announced on the second day of each meeting, at 14:00
-# New York time. Each date stays tentative until confirmed at the preceding
-# meeting; unscheduled meetings are not listed.
-FOMC_DECISION_DATES: tuple[date, ...] = (
-    date(2026, 1, 28),
-    date(2026, 3, 18),
-    date(2026, 4, 29),
-    date(2026, 6, 17),
-    date(2026, 7, 29),
-    date(2026, 9, 16),
-    date(2026, 10, 28),
-    date(2026, 12, 9),
-    date(2027, 1, 27),
-    date(2027, 3, 17),
-    date(2027, 4, 28),
-    date(2027, 6, 9),
-    date(2027, 7, 28),
-    date(2027, 9, 15),
-    date(2027, 10, 27),
-    date(2027, 12, 8),
-    date(2028, 1, 26),
-)
 
-# Meetings that also publish the Summary of Economic Projections (the dot plot).
-FOMC_PROJECTION_DATES: frozenset[date] = frozenset(
-    {
-        date(2026, 3, 18),
-        date(2026, 6, 17),
-        date(2026, 9, 16),
-        date(2026, 12, 9),
-        date(2027, 3, 17),
-        date(2027, 6, 9),
-        date(2027, 9, 15),
-        date(2027, 12, 8),
-    }
+# Indicators the rank-based matching cannot handle yet.
+#
+# The first four publish several times for the same period — GDP has three
+# estimates per quarter, Michigan a preliminary and a final each month — so
+# pairing the n-th release date with the n-th observation shifts the values
+# by one period. They need `output_type=4`, which returns each observation
+# with its own publication date.
+#
+# The last two are policy rates: their series is daily, so `release/dates`
+# returns one date per day instead of the meeting dates. They need the
+# official meeting calendars.
+DEFERRED_INDICATORS: tuple[Indicator, ...] = (
+    Indicator(
+        "GDP (QoQ, annualized)",
+        53,
+        "A191RL1Q225SBEA",
+        "lin",
+        _0830,
+        _NY,
+        "US",
+        "high",
+        "growth",
+    ),
+    Indicator(
+        "Employment Cost Index (QoQ)",
+        11,
+        "ECIALLCIV",
+        "pch",
+        _0830,
+        _NY,
+        "US",
+        "medium",
+        "employment",
+    ),
+    Indicator(
+        "Nonfarm Productivity (QoQ, ann.)",
+        47,
+        "OPHNFB",
+        "pca",
+        _0830,
+        _NY,
+        "US",
+        "low",
+        "employment",
+    ),
+    Indicator(
+        "Michigan Consumer Sentiment",
+        91,
+        "UMCSENT",
+        "lin",
+        _1000,
+        _NY,
+        "US",
+        "medium",
+        "consumer",
+    ),
+    Indicator(
+        "Fed Interest Rate Decision",
+        101,
+        "DFEDTARU",
+        "lin",
+        time(14, 0),
+        _NY,
+        "US",
+        "high",
+        "central_bank",
+    ),
+    Indicator(
+        "ECB Deposit Facility Rate",
+        484,
+        "ECBDFR",
+        "lin",
+        time(14, 15),
+        _FF,
+        "EU",
+        "high",
+        "central_bank",
+    ),
 )
