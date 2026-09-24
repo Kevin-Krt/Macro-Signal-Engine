@@ -69,6 +69,10 @@ check: lint  ## Run everything the CI runs
 	cd $(BACKEND) && uv run ruff format --check
 	cd $(BACKEND) && uv run pytest
 
+fix:  ## Apply every automatic fix
+	cd $(BACKEND) && uv run ruff check --fix
+	cd $(BACKEND) && uv run ruff format
+
 hooks:  ## Install the git hooks
 	cd $(BACKEND) && uv run pre-commit install
 
