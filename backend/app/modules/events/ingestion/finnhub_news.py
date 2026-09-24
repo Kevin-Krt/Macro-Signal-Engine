@@ -42,9 +42,9 @@ class FinnhubNewsConnector:
             )
             response.raise_for_status()
         except httpx.HTTPStatusError as exc:
-            raise ConnectorFetchError(self.name, exc.response.status_code) from exc
-        except httpx.RequestError as exc:
-            raise ConnectorFetchError(self.name) from exc
+            raise ConnectorFetchError(self.name, exc.response.status_code) from None
+        except httpx.RequestError:
+            raise ConnectorFetchError(self.name) from None
 
         try:
             payload = response.json()
