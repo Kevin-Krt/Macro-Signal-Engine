@@ -53,6 +53,7 @@ jobs:
       APP_LOG_FORMAT: json
       APP_LOG_LEVEL: INFO
       APP_FINNHUB_API_KEY: fake_api_key
+      APP_FRED_API_KEY: fake_api_key
 
     steps:
       - name: Checkout
