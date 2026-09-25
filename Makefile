@@ -3,12 +3,12 @@ BACKEND := backend
 COMPOSE := docker compose
 
 .PHONY: help up down clean restart ps logs logs-worker sh psql redis-cli \
-        migrate downgrade revision createdb-test ingest workers \
-        test lint format check hooks
+        migrate downgrade revision createdb-test ingest-news ingest-calendar \
+        workers test lint format fix check hooks
 
 help:  ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
-		| awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-12s\033[0m %s\n", $$1, $$2}'
+		| awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-16s\033[0m %s\n", $$1, $$2}'
 
 ## ---------- docker ----------
 
@@ -82,9 +82,13 @@ workers:  ## Ping the workers and show the queues they consume
 	$(COMPOSE) exec worker-io celery -A app.core.celery_app inspect ping
 	$(COMPOSE) exec worker-io celery -A app.core.celery_app inspect active_queues
 
-ingest:  ## Trigger an ingestion now (queued, runs in worker-io)
+ingest-news:  ## Trigger an ingestion now (queued, runs in worker-io)
 	$(COMPOSE) exec worker-io python -c \
 		"from app.modules.events.tasks import ingest_news; print(ingest_news.delay())"
+
+ingest-calendar:  ## Trigger a calendar ingestion now
+	$(COMPOSE) exec worker-io python -c \
+		"from app.modules.events.tasks import ingest_calendar; print(ingest_calendar.delay())"
 
 ## ---------- test ----------
 

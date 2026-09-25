@@ -28,15 +28,21 @@ openssl rand -hex 32                                    # APP_JWT_SECRET
 python3 -c "import secrets, base64; print(base64.urlsafe_b64encode(secrets.token_bytes(32)).decode())"   # APP_FERNET_KEY
 ```
 
-Then get a free Finnhub API key at [finnhub.io/register](https://finnhub.io/register)
-and paste it into `APP_FINNHUB_API_KEY`. The app refuses to start without it.
+Then get two free API keys and paste them into `.env`. The app refuses to
+start without them.
+
+| Key | Where | Variable |
+|---|---|---|
+| Finnhub | [finnhub.io/register](https://finnhub.io/register) | `APP_FINNHUB_API_KEY` |
+| FRED | [fred.stlouisfed.org](https://fred.stlouisfed.org/docs/api/api_key.html) | `APP_FRED_API_KEY` |
 
 Finally:
 
 ```bash
 make up
 make migrate
-make ingest
+make ingest-news
+make ingest-calendar
 curl -s localhost:8000/api/health
 ```
 
@@ -57,18 +63,48 @@ docker compose up -d postgres redis
 cd backend && uv run uvicorn app.main:app --reload
 ```
 
-## Ingestion
-
-Beat schedules `events.ingest_news` every six hours. `worker-io` consumes the
-`ingestion` queue, `worker-cpu` the `compute` queue (used from phase 3 on).
+Before committing:
 
 ```bash
-make ingest        # trigger one now
-make workers       # both workers should reply pong
-make logs-worker   # follow what they do
+make fix     # ruff check --fix, then ruff format
+make check   # everything the CI runs
 ```
 
-Ingestion is idempotent: the same article is updated, never duplicated.
+## Ingestion
+
+Two sources feed the timeline, each with its own Celery task:
+
+| Task | Source | Schedule | What it brings |
+|---|---|---|---|
+| `events.ingest_news` | Finnhub | every 6 hours | ~100 market news articles |
+| `events.ingest_calendar` | FRED | 07:00 and 20:00 UTC | 29 US economic indicators, past and upcoming |
+
+`worker-io` consumes the `ingestion` queue, `worker-cpu` the `compute` queue
+(used from phase 3 on). Beat schedules both.
+
+```bash
+make ingest-news       # trigger one now
+make ingest-calendar
+make workers           # both workers should reply pong
+make logs-worker       # follow what they do
+```
+
+Ingestion is idempotent: the same event is updated, never duplicated.
+
+Calendar figures are **frozen once published**: FRED revises its series
+afterwards — July payrolls went from −23k to +21k — and the timeline must show
+what the market saw that day. Upcoming events stay open until their value
+arrives.
+
+The indicators are listed in `fred_indicators.py`. After editing that list:
+
+```bash
+export FRED_API="your key"
+cd backend && uv run python scripts/check_fred.py
+```
+
+It checks every series against the live API: right release, fresh data,
+seasonally adjusted, and a value for the chosen unit.
 
 ## Commands
 
@@ -84,21 +120,26 @@ Ingestion is idempotent: the same article is updated, never duplicated.
 | `make psql` | open psql on the database |
 | `make revision m="..."` | generate a migration from the models |
 | `make migrate` | apply the migrations |
-| `make ingest` | trigger an ingestion now |
+| `make ingest-news` | trigger a news ingestion now |
+| `make ingest-calendar` | trigger a calendar ingestion now |
 | `make workers` | check the workers respond and their queues |
-| `make test` | run the test suite |
 | `make createdb-test` | create the test database (run once) |
+| `make test` | run the test suite |
+| `make fix` | apply every automatic fix |
 | `make check` | everything the CI runs |
 
 ## Layout
 
 ```
-backend/          FastAPI application
-  app/core/       config, database, logging, celery
-  app/modules/    business modules (health, events)
-  app/registry.py every model, imported for Alembic
-  alembic/        migrations
-  tests/          conftest.py holds the database and fixture helpers
-infra/postgres/   database init scripts
-.github/          CI workflow
+backend/
+  app/core/            config, database, logging, celery, shared types
+  app/modules/events/  models, repository, tasks
+    ingestion/         the connector protocol and one file per source
+  app/registry.py      every model, imported for Alembic
+  alembic/             migrations
+  scripts/             one-off checks, not part of the test suite
+  tests/               conftest.py holds the database and fixture helpers
+    fixtures/          recorded API responses
+infra/postgres/        database init scripts
+.github/               CI workflow
 ```

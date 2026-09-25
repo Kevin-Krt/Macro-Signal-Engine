@@ -7,6 +7,8 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from app.core.types import EventType, Importance
 
+REQUEST_TIMEOUT_SECONDS = 10.0
+
 
 class EventDraft(BaseModel):
     """

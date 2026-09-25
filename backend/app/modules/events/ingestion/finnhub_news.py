@@ -6,7 +6,7 @@ import httpx
 import structlog
 from pydantic import SecretStr, ValidationError
 
-from app.modules.events.ingestion.base import EventDraft
+from app.modules.events.ingestion.base import REQUEST_TIMEOUT_SECONDS, EventDraft
 from app.modules.events.ingestion.exceptions import (
     ConnectorFetchError,
     ConnectorParseError,
@@ -15,7 +15,6 @@ from app.modules.events.ingestion.exceptions import (
 log = structlog.get_logger(__name__)
 
 FINNHUB_NEWS_URL = "https://finnhub.io/api/v1/news"
-REQUEST_TIMEOUT_SECONDS = 10.0
 
 
 class FinnhubNewsConnector:

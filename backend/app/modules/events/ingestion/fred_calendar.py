@@ -8,7 +8,7 @@ import structlog
 from pydantic import BaseModel, ConfigDict, SecretStr
 
 from app.core.types import FredUnits
-from app.modules.events.ingestion.base import EventDraft
+from app.modules.events.ingestion.base import REQUEST_TIMEOUT_SECONDS, EventDraft
 from app.modules.events.ingestion.exceptions import (
     ConnectorFetchError,
     ConnectorParseError,
@@ -18,7 +18,6 @@ from app.modules.events.ingestion.fred_indicators import INDICATORS, Indicator
 log = structlog.get_logger(__name__)
 
 FRED_API_URL = "https://api.stlouisfed.org/fred"
-REQUEST_TIMEOUT_SECONDS = 10.0
 
 
 def _to_float(raw: str) -> float | None:

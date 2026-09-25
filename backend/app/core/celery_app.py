@@ -27,6 +27,11 @@ celery_app.conf.update(
             "schedule": crontab(minute=0, hour="*/6"),
             "options": {"queue": "ingestion"},
         },
+        "ingest-calendar-twice-a-day": {
+            "task": "events.ingest_calendar",
+            "schedule": crontab(minute=0, hour="7,20"),
+            "options": {"queue": "ingestion"},
+        },
     },
 )
 
