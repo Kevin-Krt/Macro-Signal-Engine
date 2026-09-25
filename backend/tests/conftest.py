@@ -20,18 +20,6 @@ from app.core.database import Base
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
 
 
-def load_fixture(name: str) -> Any:
-    return json.loads((FIXTURES_DIR / name).read_text(encoding="utf-8"))
-
-
-@pytest.fixture
-def finnhub_articles() -> list[dict[str, Any]]:
-    """
-    Three real articles, as returned by GET /api/v1/news.
-    """
-    return load_fixture("finnhub_news.json")
-
-
 @pytest.fixture(scope="session")
 async def engine() -> AsyncGenerator[AsyncEngine]:
     settings = get_settings()
@@ -63,3 +51,33 @@ async def session(connection: AsyncConnection) -> AsyncGenerator[AsyncSession]:
     )
     async with maker() as session:
         yield session
+
+
+def load_fixture(name: str) -> Any:
+    return json.loads((FIXTURES_DIR / name).read_text(encoding="utf-8"))
+
+
+@pytest.fixture
+def fred_release_dates() -> dict[str, Any]:
+    """release/dates for the Employment Situation: two past dates, two upcoming."""
+    return load_fixture("fred_release_dates.json")
+
+
+@pytest.fixture
+def fred_release_dates_published() -> dict[str, Any]:
+    """The same call without upcoming dates."""
+    return load_fixture("fred_release_dates_published.json")
+
+
+@pytest.fixture
+def fred_observations() -> dict[str, Any]:
+    """series/observations for PAYEMS in chg, newest first."""
+    return load_fixture("fred_observations.json")
+
+
+@pytest.fixture
+def finnhub_articles() -> list[dict[str, Any]]:
+    """
+    Three real articles, as returned by GET /api/v1/news.
+    """
+    return load_fixture("finnhub_news.json")

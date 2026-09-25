@@ -106,6 +106,13 @@ cd backend && uv run python scripts/check_fred.py
 It checks every series against the live API: right release, fresh data,
 seasonally adjusted, and a value for the chosen unit.
 
+Six indicators sit in `DEFERRED_INDICATORS` and are not ingested yet. GDP, the
+employment cost index and productivity publish several estimates for the same
+quarter; Michigan releases a preliminary and a final each month. Pairing the
+n-th release date with the n-th observation would shift their values by one
+period. The two policy rates have a daily series instead of meeting dates, so
+they need the official FOMC and ECB calendars.
+
 ## Commands
 
 `make` on its own lists every target.
