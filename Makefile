@@ -2,12 +2,13 @@
 BACKEND := backend
 COMPOSE := docker compose
 
-.PHONY: help up down clean restart ps logs sh psql redis-cli \
-        migrate downgrade revision test lint format check hooks
+.PHONY: help up down clean restart ps logs logs-worker sh psql redis-cli \
+        migrate downgrade revision createdb-test ingest-news ingest-calendar \
+        workers test lint format fix check hooks
 
 help:  ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
-		| awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-12s\033[0m %s\n", $$1, $$2}'
+		| awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-16s\033[0m %s\n", $$1, $$2}'
 
 ## ---------- docker ----------
 
@@ -28,6 +29,9 @@ ps:  ## Show the services and their health
 
 logs:  ## Follow the api logs
 	$(COMPOSE) logs -f api
+
+logs-worker:  ## Follow the worker and beat logs
+	$(COMPOSE) logs -f worker-io worker-cpu beat
 
 sh:  ## Open a shell inside the api container
 	$(COMPOSE) exec api sh
@@ -65,5 +69,28 @@ check: lint  ## Run everything the CI runs
 	cd $(BACKEND) && uv run ruff format --check
 	cd $(BACKEND) && uv run pytest
 
+fix:  ## Apply every automatic fix
+	cd $(BACKEND) && uv run ruff check --fix
+	cd $(BACKEND) && uv run ruff format
+
 hooks:  ## Install the git hooks
 	cd $(BACKEND) && uv run pre-commit install
+
+## ---------- celery ----------
+
+workers:  ## Ping the workers and show the queues they consume
+	$(COMPOSE) exec worker-io celery -A app.core.celery_app inspect ping
+	$(COMPOSE) exec worker-io celery -A app.core.celery_app inspect active_queues
+
+ingest-news:  ## Trigger an ingestion now (queued, runs in worker-io)
+	$(COMPOSE) exec worker-io python -c \
+		"from app.modules.events.tasks import ingest_news; print(ingest_news.delay())"
+
+ingest-calendar:  ## Trigger a calendar ingestion now
+	$(COMPOSE) exec worker-io python -c \
+		"from app.modules.events.tasks import ingest_calendar; print(ingest_calendar.delay())"
+
+## ---------- test ----------
+
+createdb-test:  ## Create the test database (safe to re-run)
+	$(COMPOSE) exec postgres createdb -U $$POSTGRES_USER $${POSTGRES_DB}_test || true

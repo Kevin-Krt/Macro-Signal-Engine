@@ -8,9 +8,7 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 import app.registry  # noqa: F401  imports every model so metadata is complete
 from alembic import context
 from app.core.config import get_settings
-from app.core.database import (
-    Base,
-)  # noqa: F401  imports every model so metadata is complete
+from app.core.database import Base
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

@@ -4,6 +4,7 @@ from fastapi.responses import JSONResponse
 from app.core.config import get_settings
 from app.core.exceptions import HealthCheckError
 from app.core.logging import RequestLoggingMiddleware, configure_logging
+from app.modules.events.router import events_router
 from app.modules.health.router import health_router
 
 settings = get_settings()
@@ -15,6 +16,7 @@ configure_logging(
 
 app = FastAPI()
 app.include_router(health_router, prefix="/api")
+app.include_router(events_router, prefix="/api/events")
 app.add_middleware(RequestLoggingMiddleware)
 
 
