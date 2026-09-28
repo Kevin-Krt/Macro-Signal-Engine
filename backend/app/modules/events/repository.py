@@ -1,7 +1,8 @@
 from collections.abc import Sequence
+from datetime import UTC, date, datetime, time, timedelta
 
 import structlog
-from sqlalchemy import func
+from sqlalchemy import func, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -73,3 +74,52 @@ async def upsert_events(
 
     log.info("events_upserted", received=len(drafts), upserted=len(deduplicated))
     return len(deduplicated)
+
+
+async def list_calendar_week(
+    session: AsyncSession, week_start: date
+) -> Sequence[Event]:
+    week_start_at = datetime.combine(week_start, time.min, tzinfo=UTC)
+    week_end_at = datetime.combine(week_start + timedelta(days=7), time.min, tzinfo=UTC)
+
+    stmt = (
+        select(Event)
+        .where(
+            Event.event_type == "calendar",
+            Event.occurred_at >= week_start_at,
+            Event.occurred_at < week_end_at,
+        )
+        .order_by(Event.occurred_at)
+    )
+
+    events = (await session.scalars(stmt)).all()
+    return events
+
+
+async def list_news(
+    session: AsyncSession,
+    *,
+    limit: int = 50,
+    before: datetime | None = None,
+    query: str | None = None,
+) -> tuple[Sequence[Event], datetime | None]:
+
+    stmt = (
+        select(Event)
+        .where(Event.event_type == "news")
+        .order_by(Event.occurred_at.desc())
+        .limit(limit + 1)
+    )
+
+    if before is not None:
+        stmt = stmt.where(Event.occurred_at < before)
+    if query:
+        stmt = stmt.where(Event.title.ilike(f"%{query}%"))
+
+    rows = (await session.scalars(stmt)).all()
+
+    has_more = len(rows) > limit
+    events = rows[:limit]
+    next_cursor = events[-1].occurred_at if has_more else None
+
+    return events, next_cursor
