@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import (
     AsyncConnection,
     AsyncEngine,
@@ -13,9 +14,10 @@ from sqlalchemy.ext.asyncio import (
 )
 from sqlalchemy.pool import NullPool
 
-import app.registry  # noqa: F401  imports every model so metadata is complete
+from app import registry  # noqa: F401  imports every model so metadata is complete
 from app.core.config import get_settings
-from app.core.database import Base
+from app.core.database import Base, get_session
+from app.main import app
 
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
 
@@ -81,3 +83,19 @@ def finnhub_articles() -> list[dict[str, Any]]:
     Three real articles, as returned by GET /api/v1/news.
     """
     return load_fixture("finnhub_news.json")
+
+
+@pytest.fixture
+async def api_client(session: AsyncSession) -> AsyncGenerator[AsyncClient]:
+    """
+    An HTTP client whose endpoints read the test session.
+    """
+
+    async def override_get_session() -> AsyncGenerator[AsyncSession]:
+        yield session
+
+    app.dependency_overrides[get_session] = override_get_session
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        yield client
+    app.dependency_overrides.clear()
