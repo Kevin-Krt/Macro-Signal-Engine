@@ -7,5 +7,6 @@ migration.
 """
 
 from app.core.database import Base
+from app.modules.events.models import Event
 
-__all__ = ["Base"]
+__all__ = ["Base", "Event"]

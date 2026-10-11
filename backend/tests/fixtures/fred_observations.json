@@ -1,0 +1,40 @@
+{
+  "realtime_start": "2026-09-09",
+  "realtime_end": "2026-09-09",
+  "observation_start": "1600-01-01",
+  "observation_end": "9999-12-31",
+  "units": "chg",
+  "output_type": 1,
+  "file_type": "json",
+  "order_by": "observation_date",
+  "sort_order": "desc",
+  "count": 1052,
+  "offset": 0,
+  "limit": 4,
+  "observations": [
+    {
+      "realtime_start": "2026-09-09",
+      "realtime_end": "2026-09-09",
+      "date": "2026-08-01",
+      "value": "162"
+    },
+    {
+      "realtime_start": "2026-09-09",
+      "realtime_end": "2026-09-09",
+      "date": "2026-07-01",
+      "value": "21"
+    },
+    {
+      "realtime_start": "2026-09-09",
+      "realtime_end": "2026-09-09",
+      "date": "2026-06-01",
+      "value": "31"
+    },
+    {
+      "realtime_start": "2026-09-09",
+      "realtime_end": "2026-09-09",
+      "date": "2026-05-01",
+      "value": "63"
+    }
+  ]
+}
